@@ -23,7 +23,10 @@ import (
 	"github.com/alibaba/openyurt/cmd/yurthub/app/config"
 	"github.com/alibaba/openyurt/pkg/yurthub/certificate/interfaces"
 	"github.com/alibaba/openyurt/pkg/yurthub/profile"
+	"github.com/alibaba/openyurt/pkg/yurthub/util"
 	"github.com/gorilla/mux"
+
+	"k8s.io/klog"
 )
 
 // Server is an interface for providing http service for yurthub
@@ -51,6 +54,7 @@ func NewYurtHubServer(cfg *config.YurtHubConfiguration,
 }
 
 func (s *yurtHubServer) Run() {
+	var err error
 	s.registerHandler()
 
 	server := &http.Server{
@@ -58,10 +62,37 @@ func (s *yurtHubServer) Run() {
 		Handler: s.mux,
 	}
 
-	err := server.ListenAndServe()
+	if s.isServeTLS() {
+		err = server.ListenAndServeTLS(s.cfg.ServerTLSCert, s.cfg.ServerTLSKey)
+	} else {
+		err = server.ListenAndServe()
+	}
+
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (s *yurtHubServer) isServeTLS() bool {
+
+	existsCert, err := util.FileExists(s.cfg.ServerTLSCert)
+	if err != nil {
+		klog.Infof("fail to init tls cert file, %v", err)
+		return false
+	}
+
+	existsKey, err := util.FileExists(s.cfg.ServerTLSKey)
+	if err != nil {
+		klog.Infof("fail to init tls key file, %v", err)
+		return false
+	}
+
+	if existsCert && existsKey {
+		klog.Infof("use %s cert file and %s key file to run server.", s.cfg.ServerTLSCert, s.cfg.ServerTLSKey)
+		return true
+	}
+
+	return false
 }
 
 func (s *yurtHubServer) registerHandler() {
