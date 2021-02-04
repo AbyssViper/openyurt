@@ -17,6 +17,8 @@ type YurtHubConfiguration struct {
 	RemoteServers             []*url.URL
 	YurtHubHost               string
 	YurtHubPort               int
+	ServerTLSCert             string
+	ServerTLSKey              string
 	GCFrequency               int
 	CertMgrMode               string
 	NodeName                  string
@@ -40,6 +42,8 @@ func Complete(options *options.YurtHubOptions) (*YurtHubConfiguration, error) {
 		RemoteServers:             us,
 		YurtHubHost:               options.YurtHubHost,
 		YurtHubPort:               options.YurtHubPort,
+		ServerTLSCert:             options.ServerTLSCert,
+		ServerTLSKey:              options.ServerTLSKey,
 		GCFrequency:               options.GCFrequency,
 		CertMgrMode:               options.CertMgrMode,
 		NodeName:                  options.NodeName,
