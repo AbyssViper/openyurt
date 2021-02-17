@@ -80,17 +80,17 @@ func (m *PoolControl) GetAllPools(ud *alpha1.UnitedDeployment) (pools []*Pool, e
 
 // CreatePool creates the Pool depending on the inputs.
 func (m *PoolControl) CreatePool(ud *alpha1.UnitedDeployment, poolName string, revision string,
-	replicas int32) error {
+	replicas int32, config map[string]string) error {
 
 	set := m.adapter.NewResourceObject()
-	m.adapter.ApplyPoolTemplate(ud, poolName, revision, replicas, set)
+	m.adapter.ApplyPoolTemplate(ud, poolName, revision, replicas, set, config)
 
 	klog.V(4).Infof("Have %d replicas when creating Pool for UnitedDeployment %s/%s", replicas, ud.Namespace, ud.Name)
 	return m.Create(context.TODO(), set)
 }
 
 // UpdatePool is used to update the pool. The target Pool workload can be found with the input pool.
-func (m *PoolControl) UpdatePool(pool *Pool, ud *alpha1.UnitedDeployment, revision string, replicas int32) error {
+func (m *PoolControl) UpdatePool(pool *Pool, ud *alpha1.UnitedDeployment, revision string, replicas int32, config map[string]string) error {
 	set := m.adapter.NewResourceObject()
 	var updateError error
 	for i := 0; i < updateRetries; i++ {
@@ -99,7 +99,7 @@ func (m *PoolControl) UpdatePool(pool *Pool, ud *alpha1.UnitedDeployment, revisi
 			return getError
 		}
 
-		if err := m.adapter.ApplyPoolTemplate(ud, pool.Name, revision, replicas, set); err != nil {
+		if err := m.adapter.ApplyPoolTemplate(ud, pool.Name, revision, replicas, set, config); err != nil {
 			return err
 		}
 		updateError = m.Client.Update(context.TODO(), set)
