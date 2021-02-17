@@ -52,6 +52,8 @@ type UnitedDeploymentSpec struct {
 	// It must match the pod template's labels.
 	Selector *metav1.LabelSelector `json:"selector"`
 
+	// ConfigSet 配置集合
+	ConfigSet string `json:"configSet,omitempty"`
 	// WorkloadTemplate describes the pool that will be created.
 	// +optional
 	WorkloadTemplate WorkloadTemplate `json:"workloadTemplate,omitempty"`

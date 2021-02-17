@@ -38,10 +38,11 @@ import (
 func (r *ReconcileUnitedDeployment) managePools(ud *unitv1alpha1.UnitedDeployment,
 	nameToPool map[string]*Pool, nextReplicas map[string]int32,
 	expectedRevision *appsv1.ControllerRevision,
-	poolType unitv1alpha1.TemplateType) (newStatus *unitv1alpha1.UnitedDeploymentStatus, updateErr error) {
+	poolType unitv1alpha1.TemplateType,
+	configSets map[string](map[string]string)) (newStatus *unitv1alpha1.UnitedDeploymentStatus, updateErr error) {
 
 	newStatus = ud.Status.DeepCopy()
-	exists, provisioned, err := r.managePoolProvision(ud, nameToPool, nextReplicas, expectedRevision, poolType)
+	exists, provisioned, err := r.managePoolProvision(ud, nameToPool, nextReplicas, expectedRevision, poolType, configSets)
 	if err != nil {
 		SetUnitedDeploymentCondition(newStatus, NewUnitedDeploymentCondition(unitv1alpha1.PoolProvisioned, corev1.ConditionFalse, "Error", err.Error()))
 		return newStatus, fmt.Errorf("fail to manage Pool provision: %s", err)
@@ -68,8 +69,8 @@ func (r *ReconcileUnitedDeployment) managePools(ud *unitv1alpha1.UnitedDeploymen
 
 			klog.V(0).Infof("UnitedDeployment %s/%s needs to update Pool (%s) %s/%s with revision %s, replicas %d ",
 				ud.Namespace, ud.Name, poolType, pool.Namespace, pool.Name, expectedRevision.Name, replicas)
-
-			updatePoolErr := r.poolControls[poolType].UpdatePool(pool, ud, expectedRevision.Name, replicas)
+			//TODO: 更新configset
+			updatePoolErr := r.poolControls[poolType].UpdatePool(pool, ud, expectedRevision.Name, replicas, nil)
 			if updatePoolErr != nil {
 				r.recorder.Event(ud.DeepCopy(), corev1.EventTypeWarning, fmt.Sprintf("Failed%s", eventTypePoolsUpdate), fmt.Sprintf("Error updating PodSet (%s) %s when updating: %s", poolType, pool.Name, updatePoolErr))
 			}
@@ -87,7 +88,9 @@ func (r *ReconcileUnitedDeployment) managePools(ud *unitv1alpha1.UnitedDeploymen
 
 func (r *ReconcileUnitedDeployment) managePoolProvision(ud *unitv1alpha1.UnitedDeployment,
 	nameToPool map[string]*Pool, nextReplicas map[string]int32,
-	expectedRevision *appsv1.ControllerRevision, workloadType unitv1alpha1.TemplateType) (sets.String, bool, error) {
+	expectedRevision *appsv1.ControllerRevision,
+	workloadType unitv1alpha1.TemplateType,
+	configSets map[string](map[string]string)) (sets.String, bool, error) {
 	expectedPools := sets.String{}
 	gotPools := sets.String{}
 
@@ -136,7 +139,8 @@ func (r *ReconcileUnitedDeployment) managePoolProvision(ud *unitv1alpha1.UnitedD
 			poolName := createdPools[idx]
 
 			replicas := nextReplicas[poolName]
-			err := r.poolControls[workloadType].CreatePool(ud, poolName, revision, replicas)
+			config := configSets[poolName]
+			err := r.poolControls[workloadType].CreatePool(ud, poolName, revision, replicas, config)
 			if err != nil {
 				if !errors.IsTimeout(err) {
 					return fmt.Errorf("fail to create Pool (%s) %s: %s", workloadType, poolName, err.Error())

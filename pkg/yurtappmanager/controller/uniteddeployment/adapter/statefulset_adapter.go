@@ -86,7 +86,7 @@ func (a *StatefulSetAdapter) GetPoolFailure() *string {
 
 // ApplyPoolTemplate updates the pool to the latest revision, depending on the StatefulSetTemplate.
 func (a *StatefulSetAdapter) ApplyPoolTemplate(ud *alpha1.UnitedDeployment, poolName, revision string,
-	replicas int32, obj runtime.Object) error {
+	replicas int32, obj runtime.Object, config map[string]string) error {
 	set := obj.(*appsv1.StatefulSet)
 
 	var poolConfig *alpha1.Pool

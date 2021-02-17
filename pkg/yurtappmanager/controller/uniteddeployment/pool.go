@@ -53,9 +53,9 @@ type ControlInterface interface {
 	// GetAllPools returns the pools which are managed by the UnitedDeployment.
 	GetAllPools(ud *unitv1alpha1.UnitedDeployment) ([]*Pool, error)
 	// CreatePool creates the pool depending on the inputs.
-	CreatePool(ud *unitv1alpha1.UnitedDeployment, unit string, revision string, replicas int32) error
+	CreatePool(ud *unitv1alpha1.UnitedDeployment, unit string, revision string, replicas int32, config map[string]string) error
 	// UpdatePool updates the target pool with the input information.
-	UpdatePool(pool *Pool, ud *unitv1alpha1.UnitedDeployment, revision string, replicas int32) error
+	UpdatePool(pool *Pool, ud *unitv1alpha1.UnitedDeployment, revision string, replicas int32, config map[string]string) error
 	// DeletePool is used to delete the input pool.
 	DeletePool(*Pool) error
 	// GetPoolFailure extracts the pool failure message to expose on UnitedDeployment status.

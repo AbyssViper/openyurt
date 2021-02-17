@@ -39,7 +39,7 @@ type Adapter interface {
 	// GetPoolFailure returns failure information of the pool.
 	GetPoolFailure() *string
 	// ApplyPoolTemplate updates the pool to the latest revision.
-	ApplyPoolTemplate(ud *alpha1.UnitedDeployment, poolName, revision string, replicas int32, pool runtime.Object) error
+	ApplyPoolTemplate(ud *alpha1.UnitedDeployment, poolName, revision string, replicas int32, pool runtime.Object, config map[string]string) error
 	// IsExpected checks the pool is the expected revision or not.
 	// If not, UnitedDeployment will call ApplyPoolTemplate to update it.
 	IsExpected(pool metav1.Object, revision string) bool
