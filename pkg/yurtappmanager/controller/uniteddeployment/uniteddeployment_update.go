@@ -66,11 +66,12 @@ func (r *ReconcileUnitedDeployment) managePools(ud *unitv1alpha1.UnitedDeploymen
 			cell := needUpdate[index]
 			pool := nameToPool[cell]
 			replicas := nextReplicas[cell]
+			config := configSets[cell]
 
 			klog.V(0).Infof("UnitedDeployment %s/%s needs to update Pool (%s) %s/%s with revision %s, replicas %d ",
 				ud.Namespace, ud.Name, poolType, pool.Namespace, pool.Name, expectedRevision.Name, replicas)
 			//TODO: 更新configset
-			updatePoolErr := r.poolControls[poolType].UpdatePool(pool, ud, expectedRevision.Name, replicas, nil)
+			updatePoolErr := r.poolControls[poolType].UpdatePool(pool, ud, expectedRevision.Name, replicas, config)
 			if updatePoolErr != nil {
 				r.recorder.Event(ud.DeepCopy(), corev1.EventTypeWarning, fmt.Sprintf("Failed%s", eventTypePoolsUpdate), fmt.Sprintf("Error updating PodSet (%s) %s when updating: %s", poolType, pool.Name, updatePoolErr))
 			}
