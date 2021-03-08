@@ -212,10 +212,10 @@ func (r *ReconcileUnitedDeployment) Reconcile(request reconcile.Request) (reconc
 	return r.updateStatus(instance, newStatus, oldStatus, nameToPool, currentRevision, collisionCount, control)
 }
 
-func (r *ReconcileUnitedDeployment) getConfigSets(ud *unitv1alpha1.UnitedDeployment) (map[string](map[string]string), error)  {
+func (r *ReconcileUnitedDeployment) getConfigSets(ud *unitv1alpha1.UnitedDeployment) (map[string](map[string]string), error) {
 
 	publicConfigMap := &corev1.ConfigMap{}
-	err := r.Get(context.TODO(), client.ObjectKey{Namespace: ud.Spec.ConfigSet, Name: PUBLIC_CONFIGMAP_NAME} , publicConfigMap)
+	err := r.Get(context.TODO(), client.ObjectKey{Namespace: ud.Spec.ConfigSet, Name: PUBLIC_CONFIGMAP_NAME}, publicConfigMap)
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func (r *ReconcileUnitedDeployment) getConfigSets(ud *unitv1alpha1.UnitedDeploym
 			config[pool.Name][k] = v
 		}
 		configMap := &corev1.ConfigMap{}
-		err := r.Get(context.TODO(), client.ObjectKey{Namespace: ud.Spec.ConfigSet, Name: pool.Name} , configMap)
+		err := r.Get(context.TODO(), client.ObjectKey{Namespace: ud.Spec.ConfigSet, Name: pool.Name}, configMap)
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
 		}
@@ -328,10 +328,12 @@ func (r *ReconcileUnitedDeployment) calculateStatus(instance *unitv1alpha1.Unite
 
 	// sync from status
 	newStatus.PoolReplicas = make(map[string]int32)
+	newStatus.PoolReadyReplicas = make(map[string]int32)
 	newStatus.ReadyReplicas = 0
 	newStatus.Replicas = 0
 	for _, pool := range nameToPool {
 		newStatus.PoolReplicas[pool.Name] = pool.Status.Replicas
+		newStatus.PoolReadyReplicas[pool.Name] = pool.Status.ReadyReplicas
 		newStatus.Replicas += pool.Status.Replicas
 		newStatus.ReadyReplicas += pool.Status.ReadyReplicas
 	}
@@ -376,6 +378,7 @@ func (r *ReconcileUnitedDeployment) updateUnitedDeployment(ud *unitv1alpha1.Unit
 		oldStatus.ReadyReplicas == newStatus.ReadyReplicas &&
 		ud.Generation == newStatus.ObservedGeneration &&
 		reflect.DeepEqual(oldStatus.PoolReplicas, newStatus.PoolReplicas) &&
+		reflect.DeepEqual(oldStatus.PoolReadyReplicas, newStatus.PoolReadyReplicas) &&
 		reflect.DeepEqual(oldStatus.Conditions, newStatus.Conditions) {
 		return ud, nil
 	}

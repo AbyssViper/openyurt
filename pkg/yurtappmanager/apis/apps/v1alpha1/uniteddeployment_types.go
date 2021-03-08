@@ -152,6 +152,10 @@ type UnitedDeploymentStatus struct {
 	// +optional
 	PoolReplicas map[string]int32 `json:"poolReplicas,omitempty"`
 
+	// Records the topology detail information of the ready replicas of each pool.
+	// +optional
+	PoolReadyReplicas map[string]int32 `json:"poolReadyReplicas,omitempty"`
+
 	// The number of ready replicas.
 	// +optional
 	ReadyReplicas int32 `json:"readyReplicas"`
