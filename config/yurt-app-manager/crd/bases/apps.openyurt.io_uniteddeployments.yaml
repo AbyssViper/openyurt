@@ -54,6 +54,9 @@ spec:
         spec:
           description: UnitedDeploymentSpec defines the desired state of UnitedDeployment.
           properties:
+            configSet:
+              description: ConfigSet 配置集合
+              type: string
             revisionHistoryLimit:
               description: Indicates the number of histories to be conserved. If unspecified,
                 defaults to 10.

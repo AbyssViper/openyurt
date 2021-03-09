@@ -52,6 +52,8 @@ type UnitedDeploymentSpec struct {
 	// It must match the pod template's labels.
 	Selector *metav1.LabelSelector `json:"selector"`
 
+	// ConfigSet 配置集合
+	ConfigSet string `json:"configSet,omitempty"`
 	// WorkloadTemplate describes the pool that will be created.
 	// +optional
 	WorkloadTemplate WorkloadTemplate `json:"workloadTemplate,omitempty"`
@@ -149,6 +151,10 @@ type UnitedDeploymentStatus struct {
 	// Records the topology detail information of the replicas of each pool.
 	// +optional
 	PoolReplicas map[string]int32 `json:"poolReplicas,omitempty"`
+
+	// Records the topology detail information of the ready replicas of each pool.
+	// +optional
+	PoolReadyReplicas map[string]int32 `json:"poolReadyReplicas,omitempty"`
 
 	// The number of ready replicas.
 	// +optional

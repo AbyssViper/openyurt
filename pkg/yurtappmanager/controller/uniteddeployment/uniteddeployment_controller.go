@@ -64,6 +64,8 @@ const (
 	eventTypeTemplateController = "TemplateController"
 
 	slowStartInitialBatchSize = 1
+
+	PUBLIC_CONFIGMAP_NAME = "public"
 )
 
 // Add creates a new UnitedDeployment Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
@@ -164,6 +166,7 @@ func (r *ReconcileUnitedDeployment) Reconcile(request reconcile.Request) (reconc
 	}
 	oldStatus := instance.Status.DeepCopy()
 
+	//获取当前cr的版本信息以及更新的版本信息
 	currentRevision, updatedRevision, collisionCount, err := r.constructUnitedDeploymentRevisions(instance)
 	if err != nil {
 		klog.Errorf("Fail to construct controller revision of UnitedDeployment %s/%s: %s", instance.Namespace, instance.Name, err)
@@ -171,6 +174,7 @@ func (r *ReconcileUnitedDeployment) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, err
 	}
 
+	//获取workload类型以及控制链工具
 	control, poolType, err := r.getPoolControls(instance)
 	if err != nil {
 		r.recorder.Event(instance.DeepCopy(), corev1.EventTypeWarning, fmt.Sprintf("Failed%s", eventTypeTemplateController), err.Error())
@@ -179,6 +183,7 @@ func (r *ReconcileUnitedDeployment) Reconcile(request reconcile.Request) (reconc
 
 	klog.V(4).Infof("Get UnitedDeployment %s/%s all pools", request.Namespace, request.Name)
 
+	//获取所有资源池信息
 	nameToPool, err := r.getNameToPool(instance, control)
 	if err != nil {
 		klog.Errorf("Fail to get Pools of UnitedDeployment %s/%s: %s", instance.Namespace, instance.Name, err)
@@ -187,6 +192,9 @@ func (r *ReconcileUnitedDeployment) Reconcile(request reconcile.Request) (reconc
 		return reconcile.Result{}, nil
 	}
 
+	//获取配置集合
+	configSets, err := r.getConfigSets(instance)
+	//获取每个资源池的副本数
 	nextReplicas := GetNextReplicas(instance)
 	klog.V(4).Infof("Get UnitedDeployment %s/%s next Replicas %v", instance.Namespace, instance.Name, nextReplicas)
 
@@ -194,7 +202,8 @@ func (r *ReconcileUnitedDeployment) Reconcile(request reconcile.Request) (reconc
 	if updatedRevision != nil {
 		expectedRevision = updatedRevision
 	}
-	newStatus, err := r.managePools(instance, nameToPool, nextReplicas, expectedRevision, poolType)
+	//TODO: 检测configSets的更新
+	newStatus, err := r.managePools(instance, nameToPool, nextReplicas, expectedRevision, poolType, configSets)
 	if err != nil {
 		klog.Errorf("Fail to update UnitedDeployment %s/%s: %s", instance.Namespace, instance.Name, err)
 		r.recorder.Event(instance.DeepCopy(), corev1.EventTypeWarning, fmt.Sprintf("Failed%s", eventTypePoolsUpdate), err.Error())
@@ -203,6 +212,32 @@ func (r *ReconcileUnitedDeployment) Reconcile(request reconcile.Request) (reconc
 	return r.updateStatus(instance, newStatus, oldStatus, nameToPool, currentRevision, collisionCount, control)
 }
 
+func (r *ReconcileUnitedDeployment) getConfigSets(ud *unitv1alpha1.UnitedDeployment) (map[string](map[string]string), error) {
+
+	publicConfigMap := &corev1.ConfigMap{}
+	err := r.Get(context.TODO(), client.ObjectKey{Namespace: ud.Spec.ConfigSet, Name: PUBLIC_CONFIGMAP_NAME}, publicConfigMap)
+	if err != nil && !errors.IsNotFound(err) {
+		return nil, err
+	}
+	config := make(map[string](map[string]string))
+	for _, pool := range ud.Spec.Topology.Pools {
+		config[pool.Name] = make(map[string]string)
+		for k, v := range publicConfigMap.Data {
+			config[pool.Name][k] = v
+		}
+		configMap := &corev1.ConfigMap{}
+		err := r.Get(context.TODO(), client.ObjectKey{Namespace: ud.Spec.ConfigSet, Name: pool.Name}, configMap)
+		if err != nil && !errors.IsNotFound(err) {
+			return nil, err
+		}
+		for k, v := range configMap.Data {
+			config[pool.Name][k] = v
+		}
+	}
+	//instance := &unitv1alpha1.UnitedDeployment{}
+	//err := r.Get(context.TODO(), request.NamespacedName, instance)
+	return config, nil
+}
 func (r *ReconcileUnitedDeployment) getNameToPool(instance *unitv1alpha1.UnitedDeployment, control ControlInterface) (map[string]*Pool, error) {
 	pools, err := control.GetAllPools(instance)
 	if err != nil {
@@ -293,10 +328,12 @@ func (r *ReconcileUnitedDeployment) calculateStatus(instance *unitv1alpha1.Unite
 
 	// sync from status
 	newStatus.PoolReplicas = make(map[string]int32)
+	newStatus.PoolReadyReplicas = make(map[string]int32)
 	newStatus.ReadyReplicas = 0
 	newStatus.Replicas = 0
 	for _, pool := range nameToPool {
 		newStatus.PoolReplicas[pool.Name] = pool.Status.Replicas
+		newStatus.PoolReadyReplicas[pool.Name] = pool.Status.ReadyReplicas
 		newStatus.Replicas += pool.Status.Replicas
 		newStatus.ReadyReplicas += pool.Status.ReadyReplicas
 	}
@@ -341,6 +378,7 @@ func (r *ReconcileUnitedDeployment) updateUnitedDeployment(ud *unitv1alpha1.Unit
 		oldStatus.ReadyReplicas == newStatus.ReadyReplicas &&
 		ud.Generation == newStatus.ObservedGeneration &&
 		reflect.DeepEqual(oldStatus.PoolReplicas, newStatus.PoolReplicas) &&
+		reflect.DeepEqual(oldStatus.PoolReadyReplicas, newStatus.PoolReadyReplicas) &&
 		reflect.DeepEqual(oldStatus.Conditions, newStatus.Conditions) {
 		return ud, nil
 	}

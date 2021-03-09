@@ -14,6 +14,8 @@ type YurtHubOptions struct {
 	ServerAddr                string
 	YurtHubHost               string
 	YurtHubPort               int
+	ServerTLSCert             string
+	ServerTLSKey              string
 	GCFrequency               int
 	CertMgrMode               string
 	NodeName                  string
@@ -71,6 +73,8 @@ func (o *YurtHubOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.YurtHubHost, "bind-address", o.YurtHubHost, "the IP address on which to listen for the --serve-port port.")
 	fs.IntVar(&o.YurtHubPort, "serve-port", o.YurtHubPort, "the port on which to serve HTTP.")
 	fs.StringVar(&o.ServerAddr, "server-addr", o.ServerAddr, "the address of Kubernetes kube-apiserver,the format is: \"server1,server2,...\"")
+	fs.StringVar(&o.ServerTLSCert, "server-tls-cert", o.ServerAddr, "the cert file path when yurthub server use https schema.")
+	fs.StringVar(&o.ServerTLSKey, "server-tls-key", o.ServerAddr, "the key file path when make yurthub server use https schema.")
 	fs.StringVar(&o.CertMgrMode, "cert-mgr-mode", o.CertMgrMode, "the cert manager mode, kubelet: use certificates that belongs to kubelet, hubself: auto generate client cert for hub agent.")
 	fs.IntVar(&o.GCFrequency, "gc-frequency", o.GCFrequency, "the frequency to gc cache in storage(unit: minute).")
 	fs.StringVar(&o.NodeName, "node-name", o.NodeName, "the name of node that runs hub agent")

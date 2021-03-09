@@ -18,9 +18,11 @@ package adapter
 
 import (
 	"fmt"
+	apiv1 "k8s.io/api/core/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -74,7 +76,7 @@ func (a *DeploymentAdapter) GetPoolFailure() *string {
 
 // ApplyPoolTemplate updates the pool to the latest revision, depending on the DeploymentTemplate.
 func (a *DeploymentAdapter) ApplyPoolTemplate(ud *alpha1.UnitedDeployment, poolName, revision string,
-	replicas int32, obj runtime.Object) error {
+	replicas int32, obj runtime.Object, config map[string]string) error {
 	set := obj.(*appsv1.Deployment)
 
 	var poolConfig *alpha1.Pool
@@ -135,6 +137,15 @@ func (a *DeploymentAdapter) ApplyPoolTemplate(ud *alpha1.UnitedDeployment, poolN
 	set.Spec.Paused = ud.Spec.WorkloadTemplate.DeploymentTemplate.Spec.Paused
 	set.Spec.ProgressDeadlineSeconds = ud.Spec.WorkloadTemplate.DeploymentTemplate.Spec.ProgressDeadlineSeconds
 
+	var envs []apiv1.EnvVar
+	for k, v := range config {
+		klog.V(4).Info("nnnnn: %+v, %v", k, v)
+		envs = append(envs, apiv1.EnvVar{
+			Name:  k,
+			Value: v,
+		})
+	}
+	set.Spec.Template.Spec.Containers[0].Env = envs
 	attachNodeAffinityAndTolerations(&set.Spec.Template.Spec, poolConfig)
 	return nil
 }

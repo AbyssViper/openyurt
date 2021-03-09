@@ -92,7 +92,8 @@ function build_docker_image() {
                mkdir -p ${docker_build_path}
 
                local yurt_component_image="${REPO}/${binary_name}:${TAG}-${arch}"
-               local base_image="k8s.gcr.io/debian-iptables-${arch}:v11.0.2"
+#               local base_image="k8s.gcr.io/debian-iptables-${arch}:v11.0.2"
+               local base_image="mirrorgooglecontainers/debian-iptables-${arch}:v11.0.2"
                cat <<EOF > "${docker_file_path}"
 FROM ${base_image}
 COPY ${binary_name} /usr/local/bin/${binary_name}
